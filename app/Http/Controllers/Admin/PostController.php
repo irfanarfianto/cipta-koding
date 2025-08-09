@@ -66,7 +66,9 @@ class PostController extends Controller
         unset($data['tag_ids']);
 
         $post->update($data);
-        if (!is_null($tags)) $post->tags()->sync($tags);
+        if (!is_null($tags)) {
+            $post->tags()->sync($tags);
+        }
 
         return back()->with('success','Post diperbarui.');
     }
