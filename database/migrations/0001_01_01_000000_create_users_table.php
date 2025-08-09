@@ -11,12 +11,25 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('users', function (Blueprint $table) {
-             $table->uuid('id')->primary();
+        $isPg = DB::getDriverName() === 'pgsql';
+
+        // helper to define UUID PK with optional DB-side default (Postgres)
+        $uuidPk = function (Blueprint $table) use ($isPg) {
+            if ($isPg) {
+                // requires pgcrypto: CREATE EXTENSION IF NOT EXISTS pgcrypto;
+                $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
+            } else {
+                $table->uuid('id')->primary();
+            }
+        };
+
+        Schema::create('users', function (Blueprint $table) use ($uuidPk) {
+              $uuidPk($table);
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->boolean('is_admin')->default(false)->index();
             $table->rememberToken();
             $table->timestamps();
         });
@@ -42,8 +55,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('sessions');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('users');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('sessions');
     }
 };

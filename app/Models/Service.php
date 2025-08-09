@@ -5,27 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Service extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
-    protected $fillable = [
-        'name',
-        'slug',
-        'description',
-        'base_price',
-        'is_active',
-    ];
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected $fillable = ['name','slug','description','base_price','is_active'];
 
     protected $casts = [
-        'base_price' => 'decimal:2',
-        'is_active' => 'boolean',
+        'base_price' => 'decimal:4',
+        'is_active'  => 'boolean',
     ];
 
-    /**
-     * Get all of the service's order items.
-     */
     public function orderItems()
     {
         return $this->morphMany(OrderItem::class, 'item');

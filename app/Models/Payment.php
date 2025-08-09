@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class OrderItem extends Model
+class Payment extends Model
 {
     use HasFactory, HasUuids;
 
@@ -14,24 +14,20 @@ class OrderItem extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'order_id',
-        'item_id',
-        'item_type',
-        'quantity',
-        'price',
+        'invoice_id',
+        'amount',
+        'method',
+        'reference',
+        'paid_at',
     ];
 
     protected $casts = [
-        'price' => 'decimal:4',
+        'amount'  => 'decimal:4',
+        'paid_at' => 'datetime',
     ];
 
-    public function order()
+    public function invoice()
     {
-        return $this->belongsTo(Order::class);
-    }
-
-    public function item()
-    {
-        return $this->morphTo();
+        return $this->belongsTo(Invoice::class);
     }
 }

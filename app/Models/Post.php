@@ -5,10 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Post extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
+
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'user_id',
@@ -17,6 +21,7 @@ class Post extends Model
         'excerpt',
         'body',
         'cover_image_url',
+        'status',
         'published_at',
     ];
 
@@ -24,17 +29,11 @@ class Post extends Model
         'published_at' => 'datetime',
     ];
 
-    /**
-     * Get the user that owns the post.
-     */
     public function author()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    /**
-     * Get all of the tags for the post.
-     */
     public function tags()
     {
         return $this->morphToMany(Tag::class, 'taggable');

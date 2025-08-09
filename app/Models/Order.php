@@ -5,10 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Order extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
+
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'client_id',
@@ -19,30 +23,31 @@ class Order extends Model
     ];
 
     protected $casts = [
-        'final_amount' => 'decimal:2',
+        'final_amount' => 'decimal:4',
     ];
 
-    /**
-     * Get the client that owns the order.
-     */
     public function client()
     {
         return $this->belongsTo(Client::class);
     }
 
-    /**
-     * Get all of the items for the order.
-     */
     public function items()
     {
         return $this->hasMany(OrderItem::class);
     }
 
-    /**
-     * Get the invoices for the order.
-     */
     public function invoices()
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    public function payments()
+    {
+        return $this->hasManyThrough(Payment::class, Invoice::class);
+    }
+
+    public function statusHistories()
+    {
+        return $this->hasMany(OrderStatusHistory::class);
     }
 }

@@ -5,24 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Tag extends Model
 {
-    use HasFactory, HasUuids;
+    use HasFactory, HasUuids, SoftDeletes;
 
-    protected $fillable = ['name', 'slug'];
+    public $incrementing = false;
+    protected $keyType = 'string';
 
-    /**
-     * Get all of the posts that are assigned this tag.
-     */
+    protected $fillable = ['name','slug'];
+
     public function posts()
     {
         return $this->morphedByMany(Post::class, 'taggable');
     }
 
-    /**
-     * Get all of the portfolio projects that are assigned this tag.
-     */
     public function portfolioProjects()
     {
         return $this->morphedByMany(PortfolioProject::class, 'taggable');

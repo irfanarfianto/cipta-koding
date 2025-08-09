@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class OrderItem extends Model
+class OrderStatusHistory extends Model
 {
     use HasFactory, HasUuids;
 
@@ -15,23 +15,12 @@ class OrderItem extends Model
 
     protected $fillable = [
         'order_id',
-        'item_id',
-        'item_type',
-        'quantity',
-        'price',
+        'from_status',
+        'to_status',
+        'changed_by',
+        'note',
     ];
 
-    protected $casts = [
-        'price' => 'decimal:4',
-    ];
-
-    public function order()
-    {
-        return $this->belongsTo(Order::class);
-    }
-
-    public function item()
-    {
-        return $this->morphTo();
-    }
+    public function order() { return $this->belongsTo(Order::class); }
+    public function changer() { return $this->belongsTo(User::class, 'changed_by'); }
 }
