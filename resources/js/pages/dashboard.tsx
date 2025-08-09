@@ -39,15 +39,14 @@ function formatCurrency(n: number | string | null | undefined) {
 export default function Dashboard(props: DashboardProps) {
     const { metrics, charts, latest_orders, due_invoices, recent_payments } = props;
 
-    // ← Pindahkan useMemo ke dalam komponen
-    const years = useMemo(() => {
-        const set = new Set<number>();
-        charts.monthly_revenue.forEach(({ ym }) => {
-            const y = parseInt(ym.split('-')[0], 10);
-            if (!Number.isNaN(y)) set.add(y);
-        });
-        return Array.from(set).sort((a, b) => b - a);
-    }, [charts.monthly_revenue]);
+   const years = useMemo(() => {
+       const set = new Set<number>();
+       charts.monthly_revenue.forEach(({ ym }) => {
+           const y = parseInt(ym.split('-')[0], 10);
+           if (!Number.isNaN(y)) set.add(y);
+       });
+       return Array.from(set).sort((a, b) => b - a);
+   }, [charts.monthly_revenue]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -73,11 +72,12 @@ export default function Dashboard(props: DashboardProps) {
                     {/* Chart revenue (pakai komponen dengan filter tahun) */}
                     <RevenueAreaMonthly
                         data={charts.monthly_revenue} // [{ ym: "2025-01", total: 123 }]
+                        years={years}
+                        initialYear={null} // atau new Date().getFullYear()
                         currencyFormatter={formatCurrency}
                         title="Pendapatan Bulanan"
                         description="12 bulan terakhir"
-                        years={years}
-                        initialYear={null} // atau new Date().getFullYear()
+                        height={300}
                     />
 
                     {/* <OrderStatusDistributionChart data={charts.order_status_distribution} /> */}
