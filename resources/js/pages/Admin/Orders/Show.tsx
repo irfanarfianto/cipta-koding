@@ -11,7 +11,6 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { formatRupiah, formatRupiahInput, parseRupiah } from '@/utils/formatCurrency';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
 
 type Client = { id: string; name: string; email?: string; phone_number?: string };
 type ServiceLite = { id: string; name: string; base_price?: number | string | null };
@@ -53,6 +52,7 @@ const breadcrumbs = (order_code: string): BreadcrumbItem[] => [
     { title: order_code, href: `/admin/orders/${order_code}` },
 ];
 
+
 export default function Show(props: Readonly<PageProps>) {
     const { order, paid, due } = props;
 
@@ -73,14 +73,7 @@ export default function Show(props: Readonly<PageProps>) {
     });
 
     // pricetext
-    const [finalAmountText, setFinalAmountText] = useState<string>(formatRupiahInput(order.final_amount ?? ''));
-
-    // kalau order berubah (navigasi), sinkronkan tampilan input
-    useEffect(() => {
-        setFinalAmountText(formatRupiahInput(order.final_amount ?? ''));
-    }, [order.id, order.final_amount]);
     
-    console.log(finalAmountText);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs(order.order_code)}>
@@ -97,7 +90,7 @@ export default function Show(props: Readonly<PageProps>) {
                     </Link>
                     <OrderStatusBadge status={order.status} />
                 </div>
-            </div>
+            </div>  
 
             <Separator className="my-4" />
 
@@ -126,21 +119,14 @@ export default function Show(props: Readonly<PageProps>) {
                                 <Input
                                     type="text"
                                     inputMode="numeric"
-                                    value={finalAmountText}
-                                    onChange={(e) => setFinalAmountText(formatRupiahInput(e.target.value))}
+                                    value={formatRupiahInput(form.data.final_amount ?? '')}
+                                    onChange={(e) => {
+                                        const raw = parseRupiah(e.target.value);
+                                        form.setData('final_amount', raw);
+                                    }}
                                 />
                                 <Button
-                                    onClick={() => {
-                                        const raw = parseRupiah(finalAmountText); // -> number murni
-                                        form.setData('final_amount', raw);
-                                        form.put(route('admin.orders.update', order.id), {
-                                            preserveScroll: true,
-                                            onSuccess: () => {
-                                                // pastikan state selaras dg nilai di DB setelah update
-                                                setFinalAmountText(formatRupiahInput(raw));
-                                            },
-                                        });
-                                    }}
+                                    onClick={() => form.put(route('admin.orders.update', order.id), { preserveScroll: true })}
                                     disabled={form.processing}
                                 >
                                     Simpan
