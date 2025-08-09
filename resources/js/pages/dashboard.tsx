@@ -39,14 +39,14 @@ function formatCurrency(n: number | string | null | undefined) {
 export default function Dashboard(props: DashboardProps) {
     const { metrics, charts, latest_orders, due_invoices, recent_payments } = props;
 
-   const years = useMemo(() => {
-       const set = new Set<number>();
-       charts.monthly_revenue.forEach(({ ym }) => {
-           const y = parseInt(ym.split('-')[0], 10);
-           if (!Number.isNaN(y)) set.add(y);
-       });
-       return Array.from(set).sort((a, b) => b - a);
-   }, [charts.monthly_revenue]);
+    const years = useMemo(() => {
+        const set = new Set<number>();
+        charts.monthly_revenue.forEach(({ ym }) => {
+            const y = parseInt(ym.split('-')[0], 10);
+            if (!Number.isNaN(y)) set.add(y);
+        });
+        return Array.from(set).sort((a, b) => b - a);
+    }, [charts.monthly_revenue]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -66,9 +66,6 @@ export default function Dashboard(props: DashboardProps) {
 
                 {/* Bottom area */}
                 <div className="relative min-h-[100vh] flex-1 space-y-4 overflow-hidden md:min-h-min">
-                    <LatestOrdersTable rows={latest_orders} formatCurrency={formatCurrency} />
-                    <DueInvoicesTable rows={due_invoices} formatCurrency={formatCurrency} />
-
                     {/* Chart revenue (pakai komponen dengan filter tahun) */}
                     <RevenueAreaMonthly
                         data={charts.monthly_revenue} // [{ ym: "2025-01", total: 123 }]
@@ -79,6 +76,8 @@ export default function Dashboard(props: DashboardProps) {
                         description="12 bulan terakhir"
                         height={300}
                     />
+                    <LatestOrdersTable rows={latest_orders} formatCurrency={formatCurrency} />
+                    <DueInvoicesTable rows={due_invoices} formatCurrency={formatCurrency} />
 
                     {/* <OrderStatusDistributionChart data={charts.order_status_distribution} /> */}
                     <RecentPaymentsTable rows={recent_payments} formatCurrency={formatCurrency} />

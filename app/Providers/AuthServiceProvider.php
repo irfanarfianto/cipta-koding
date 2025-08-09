@@ -22,6 +22,6 @@ class AuthServiceProvider extends ServiceProvider
    public function boot(): void
     {
         // Akses dashboard/admin only
-        Gate::define('access-admin', fn($user) => $user?->isAdmin() === true);
+    Gate::define('access-admin', fn(\App\Models\User $user) => (bool) $user->is_admin);
     }
 }

@@ -11,7 +11,6 @@ return new class extends Migration
     {
         $isPg = DB::getDriverName() === 'pgsql';
 
-        // helper UUID PK
         $uuidPk = function (Blueprint $table) use ($isPg) {
             if ($isPg) {
                 $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
@@ -20,7 +19,23 @@ return new class extends Migration
             }
         };
 
-        // clients
+        $this->createClientsTable($uuidPk);
+        $this->createServicesTable($uuidPk);
+        $this->createTagsTable($uuidPk);
+        $this->createTestimonialsTable($uuidPk);
+        $this->createPortfolioProjectsTable($uuidPk);
+        $this->createPostsTable($uuidPk);
+        $this->createOrdersTable($uuidPk);
+        $this->createInvoicesTable($uuidPk);
+        $this->createPaymentsTable($uuidPk);
+        $this->createOrderItemsTable($uuidPk);
+        $this->createTaggablesTable();
+        $this->createOrderStatusHistoriesTable($uuidPk);
+        $this->addCheckConstraints($isPg);
+    }
+
+    private function createClientsTable($uuidPk)
+    {
         Schema::create('clients', function (Blueprint $table) use ($uuidPk) {
             $uuidPk($table);
             $table->string('name');
@@ -30,20 +45,24 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
+    }
 
-        // services
+    private function createServicesTable($uuidPk)
+    {
         Schema::create('services', function (Blueprint $table) use ($uuidPk) {
             $uuidPk($table);
             $table->string('name');
             $table->string('slug')->unique();
             $table->text('description');
-            $table->decimal('base_price', 19, 4)->nullable();
+            $table->decimal('base_price', 19, 0)->nullable();
             $table->boolean('is_active')->default(true)->index();
             $table->timestamps();
             $table->softDeletes();
         });
+    }
 
-        // tags
+    private function createTagsTable($uuidPk)
+    {
         Schema::create('tags', function (Blueprint $table) use ($uuidPk) {
             $uuidPk($table);
             $table->string('name')->unique();
@@ -51,8 +70,10 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
+    }
 
-        // testimonials
+    private function createTestimonialsTable($uuidPk)
+    {
         Schema::create('testimonials', function (Blueprint $table) use ($uuidPk) {
             $uuidPk($table);
             $table->string('client_name');
@@ -63,8 +84,10 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
+    }
 
-        // portfolio_projects
+    private function createPortfolioProjectsTable($uuidPk)
+    {
         Schema::create('portfolio_projects', function (Blueprint $table) use ($uuidPk) {
             $uuidPk($table);
             $table->string('title');
@@ -78,8 +101,10 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
+    }
 
-        // posts
+    private function createPostsTable($uuidPk)
+    {
         Schema::create('posts', function (Blueprint $table) use ($uuidPk) {
             $uuidPk($table);
             $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
@@ -93,8 +118,10 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
+    }
 
-        // orders
+    private function createOrdersTable($uuidPk)
+    {
         Schema::create('orders', function (Blueprint $table) use ($uuidPk) {
             $uuidPk($table);
             $table->string('order_code', 20)->unique();
@@ -107,55 +134,65 @@ return new class extends Migration
                 'Selesai',
                 'Dibatalkan'
             ])->default('Menunggu Konfirmasi')->index();
-            $table->decimal('final_amount', 19, 4)->nullable();
+            $table->decimal('final_amount', 19, 0)->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
+    }
 
-        // invoices
+    private function createInvoicesTable($uuidPk)
+    {
         Schema::create('invoices', function (Blueprint $table) use ($uuidPk) {
             $uuidPk($table);
             $table->string('invoice_code', 20)->unique();
             $table->foreignUuid('order_id')->constrained('orders')->cascadeOnDelete();
-            $table->decimal('amount', 19, 4);
+            $table->decimal('amount', 19, 0);
             $table->enum('status', ['unpaid', 'paid', 'overdue', 'cancelled'])->default('unpaid')->index();
             $table->date('due_date')->index();
             $table->timestampTz('paid_at')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
+    }
 
-        // payments
+    private function createPaymentsTable($uuidPk)
+    {
         Schema::create('payments', function (Blueprint $table) use ($uuidPk) {
             $uuidPk($table);
             $table->foreignUuid('invoice_id')->constrained('invoices')->cascadeOnDelete();
-            $table->decimal('amount', 19, 4);
+            $table->decimal('amount', 19, 0);
             $table->string('method')->nullable();
             $table->string('reference')->nullable();
             $table->timestampTz('paid_at')->nullable();
             $table->timestamps();
             $table->index(['invoice_id', 'paid_at']);
         });
+    }
 
-        // order_items
+    private function createOrderItemsTable($uuidPk)
+    {
         Schema::create('order_items', function (Blueprint $table) use ($uuidPk) {
             $uuidPk($table);
             $table->foreignUuid('order_id')->constrained('orders')->cascadeOnDelete()->index();
             $table->uuidMorphs('item');
             $table->integer('quantity')->default(1);
-            $table->decimal('price', 19, 4);
+            $table->decimal('price', 19, 0);
             $table->timestamps();
         });
+    }
 
-        // taggables
+    private function createTaggablesTable()
+    {
         Schema::create('taggables', function (Blueprint $table) {
             $table->foreignUuid('tag_id')->constrained('tags')->cascadeOnDelete();
             $table->uuidMorphs('taggable');
             $table->primary(['tag_id', 'taggable_id', 'taggable_type']);
         });
+    }
 
-        // order_status_histories
+    private function createOrderStatusHistoriesTable($uuidPk)
+    {
         Schema::create('order_status_histories', function (Blueprint $table) use ($uuidPk) {
             $uuidPk($table);
             $table->foreignUuid('order_id')->constrained('orders')->cascadeOnDelete()->index();
@@ -179,8 +216,10 @@ return new class extends Migration
             $table->text('note')->nullable();
             $table->timestamps();
         });
+    }
 
-        // CHECK constraint via raw SQL (opsional)
+    private function addCheckConstraints($isPg)
+    {
         if ($isPg) {
             DB::statement("ALTER TABLE orders ADD CONSTRAINT orders_final_amount_nonneg CHECK (final_amount IS NULL OR final_amount >= 0)");
             DB::statement("ALTER TABLE invoices ADD CONSTRAINT invoices_amount_nonneg CHECK (amount >= 0)");

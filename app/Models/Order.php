@@ -23,7 +23,7 @@ class Order extends Model
     ];
 
     protected $casts = [
-        'final_amount' => 'decimal:4',
+        'final_amount' => 'integer',
     ];
 
     public function client()

@@ -17,7 +17,7 @@ class Service extends Model
     protected $fillable = ['name','slug','description','base_price','is_active'];
 
     protected $casts = [
-        'base_price' => 'decimal:4',
+        'base_price' => 'integer',
         'is_active'  => 'boolean',
     ];
 
