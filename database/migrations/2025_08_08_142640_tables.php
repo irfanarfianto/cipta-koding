@@ -126,14 +126,9 @@ return new class extends Migration
             $uuidPk($table);
             $table->string('order_code', 20)->unique();
             $table->foreignUuid('client_id')->constrained('clients')->cascadeOnDelete();
-            $table->enum('status', [
-                'Menunggu Konfirmasi',
-                'Menunggu Pembayaran',
-                'Sedang Dikerjakan',
-                'Review',
-                'Selesai',
-                'Dibatalkan'
-            ])->default('Menunggu Konfirmasi')->index();
+            $table->enum('status', \App\Models\Order::STATUSES)
+                ->default(\App\Models\Order::STATUS_MENUNGGU_KONFIRMASI)
+                ->index();
             $table->decimal('final_amount', 19, 0)->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
