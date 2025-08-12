@@ -88,15 +88,6 @@ export default function Show(props: Readonly<PageProps>) {
                             due={Number(due ?? 0)}
                             dpUrl={route('admin.orders.invoice.dp', order.id)}
                             pelunasanUrl={route('admin.orders.invoice.pelunasan', order.id)}
-                            order={{
-                                invoices: (order.invoices ?? []).map((inv) => ({
-                                    id: inv.id,
-                                    invoice_code: inv.invoice_code,
-                                    due_date: inv.due_date ?? '',
-                                    status: inv.status,
-                                    amount: Number(inv.amount ?? 0),
-                                })),
-                            }}
                         />
                     </div>
                 </div>

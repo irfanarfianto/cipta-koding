@@ -142,6 +142,7 @@ return new class extends Migration
             $uuidPk($table);
             $table->string('invoice_code', 20)->unique();
             $table->foreignUuid('order_id')->constrained('orders')->cascadeOnDelete();
+            $table->enum('type', ['dp', 'pelunasan', 'milestone', 'full'])->nullable()->index();
             $table->decimal('amount', 19, 0);
             $table->enum('status', ['unpaid', 'paid', 'overdue', 'cancelled'])->default('unpaid')->index();
             $table->date('due_date')->index();
@@ -150,6 +151,7 @@ return new class extends Migration
             $table->softDeletes();
         });
     }
+
 
     private function createPaymentsTable($uuidPk)
     {

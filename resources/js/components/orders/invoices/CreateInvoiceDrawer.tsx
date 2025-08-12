@@ -1,14 +1,11 @@
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
-import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { downloadBlob } from '@/utils/download';
 import { formatRupiah, formatRupiahInput, parseRupiah } from '@/utils/formatCurrency';
-import { formatTanggal } from '@/utils/formatDate';
 import { router, useForm } from '@inertiajs/react';
 import { format } from 'date-fns';
 import { CalendarIcon } from 'lucide-react';
@@ -20,27 +17,23 @@ type Props = {
     readonly due: number;
     readonly dpUrl: string;
     readonly pelunasanUrl: string;
-    readonly order: {
-        invoices: {
-            id: string;
-            invoice_code: string;
-            due_date: string;
-            status: string;
-            amount: number;
-        }[];
-    };
 };
 
-export default function CreateInvoiceSheet({ finalAmount, paid, due, dpUrl, pelunasanUrl, order }: Props) {
+export default function CreateInvoiceSheet({ finalAmount, paid, due, dpUrl, pelunasanUrl }: Props) {
     const [open, setOpen] = useState(false);
     const [mode, setMode] = useState<'dp' | 'pelunasan'>('dp');
     const [dateObj, setDateObj] = useState<Date>(() => {
         const d = new Date();
         d.setDate(d.getDate() + 7);
         return d;
-    });const [downloadingId, setDownloadingId] = useState<string | null>(null);
-
-    const form = useForm<{ amount?: number | null; percent?: number | null; due_date: string }>({
+    });
+    const form = useForm<{
+        type: 'dp' | 'pelunasan';
+        amount?: number | null;
+        percent?: number | null;
+        due_date: string;
+    }>({
+        type: mode, // default sesuai mode awal
         amount: null,
         percent: 50,
         due_date: format(dateObj, 'yyyy-MM-dd'),
@@ -69,6 +62,7 @@ export default function CreateInvoiceSheet({ finalAmount, paid, due, dpUrl, pelu
 
         if (mode === 'dp') {
             form.setData({
+                type: 'dp',
                 amount: form.data.amount ?? null,
                 percent: form.data.amount ? null : Math.min(100, Math.max(1, Number(form.data.percent ?? 50))),
                 due_date: form.data.due_date,
@@ -85,7 +79,8 @@ export default function CreateInvoiceSheet({ finalAmount, paid, due, dpUrl, pelu
         }
 
         form.setData({
-            amount: form.data.amount ?? null,
+            type: 'pelunasan',
+            amount: null,
             due_date: form.data.due_date,
         });
         form.post(pelunasanUrl, {
@@ -95,19 +90,6 @@ export default function CreateInvoiceSheet({ finalAmount, paid, due, dpUrl, pelu
                 router.reload({ only: ['order', 'paid', 'due'] });
             },
         });
-    };
-    const handleDownload = async (inv: { id: string; invoice_code: string }) => {
-        try {
-            setDownloadingId(inv.id);
-            const url = route('admin.invoices.download', inv.id);
-            const filename = (inv.invoice_code ? inv.invoice_code : 'invoice-' + inv.id) + '.pdf';
-            await downloadBlob(url, filename);
-        } catch (e) {
-            console.error(e);
-            // optional: tampilkan toast error
-        } finally {
-            setDownloadingId(null);
-        }
     };
 
     return (
@@ -121,29 +103,6 @@ export default function CreateInvoiceSheet({ finalAmount, paid, due, dpUrl, pelu
                 <SheetHeader>
                     <SheetTitle>Buat Invoice</SheetTitle>
                 </SheetHeader>
-                <Card className="mx-4 space-y-3 p-4">
-                    <div className="font-semibold">Invoices</div>
-                    <div className="space-y-2">
-                        {(order.invoices ?? []).map((inv) => (
-                            <div key={inv.id} className="flex items-center justify-between text-sm">
-                                <div>
-                                    <div className="font-medium">{inv.invoice_code}</div>
-                                    <div className="text-xs text-muted-foreground">
-                                        Jatuh tempo: {formatTanggal(inv.due_date)} • Status: {inv.status}
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2">
-                                    <div className="text-right font-semibold">{formatRupiah(inv.amount)}</div>
-                                    <Button variant="outline" size="sm" onClick={() => handleDownload(inv)} disabled={downloadingId === inv.id}>
-                                        {downloadingId === inv.id ? 'Mengunduh…' : 'Unduh PDF'}
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
-                        {(order.invoices ?? []).length === 0 && <div className="text-sm text-muted-foreground">Belum ada invoice.</div>}
-                    </div>
-                </Card>
 
                 <div className="space-y-4 p-4">
                     {/* Mode */}

@@ -66,4 +66,15 @@ class Order extends Model
     {
         return $this->hasMany(OrderStatusHistory::class);
     }
+    public function remainingToInvoice(): int
+    {
+        $final = (int) ($this->final_amount ?? 0);
+        $invoiced = (int) $this->invoices()->where('status', '!=', 'cancelled')->sum('amount');
+        return max(0, $final - $invoiced);
+    }
+
+    public function totalPaid(): int
+    {
+        return (int) $this->invoices()->withSum('payments', 'amount')->get()->sum('payments_sum_amount');
+    }
 }

@@ -21,7 +21,8 @@ class InvoiceController extends Controller
 
         $invoices = Invoice::query()
             ->with('order.client')
-            ->when(request('status'), fn($q) => $q->where('status', request('status')))
+            ->status(request('status'))
+            ->ofType(request('type'))
             ->when(request('search'), function ($q) use ($like) {
                 $s = request('search');
                 $q->where(fn($w) => $w->where('invoice_code', $like, "%$s%")
@@ -33,10 +34,12 @@ class InvoiceController extends Controller
 
         return Inertia::render('Admin/Invoices/Index', [
             'invoices' => $invoices,
-            'filters'  => request()->only(['status', 'search']),
+            'filters'  => request()->only(['status', 'type', 'search']),
             'statuses' => ['unpaid', 'paid', 'overdue', 'cancelled'],
+            'types'    => ['dp', 'pelunasan', 'milestone', 'full'],
         ]);
     }
+
 
     public function show(Invoice $invoice)
     {
@@ -50,13 +53,15 @@ class InvoiceController extends Controller
 
         $invoice = $order->invoices()->create([
             'invoice_code' => 'INV-' . now()->format('ymd') . '-' . str()->upper(str()->random(5)),
-            'amount'       => $data['amount'],
+            'type'         => $data['type'] ?? 'full',
+            'amount'       => (int) $data['amount'],
             'due_date'     => $data['due_date'],
             'status'       => 'unpaid',
         ]);
 
         return redirect()->route('admin.invoices.show', $invoice)->with('success', 'Invoice dibuat.');
     }
+
 
     public function update(InvoiceUpdateRequest $request, Invoice $invoice)
     {
@@ -73,33 +78,30 @@ class InvoiceController extends Controller
             'due_date' => ['required', 'date'],
         ]);
 
-        // final_amount bisa null → anggap 0
-        $final = (float) ($order->final_amount ?? 0);
+        $remaining = $order->remainingToInvoice(); // final - sum(invoices not cancelled)
 
-        // Jika nominal diisi, pakai itu; jika kosong, hitung dari persen (default 50%)
         $amount = $data['amount'] ?? null;
         if (is_null($amount)) {
             $pct    = (float) ($data['percent'] ?? 50);
-            $amount = (int) round($final * $pct / 100);
+            $amount = (int) round($remaining * $pct / 100);
         }
-
-        // Safety: tidak boleh lebih dari final
-        $amount = max(0, min($amount, $final));
+        $amount = max(0, min((int)$amount, $remaining));
 
         $order->invoices()->create([
             'invoice_code' => 'INV-' . now()->format('ymd') . '-' . str()->upper(str()->random(5)),
-            'amount'       => $amount,
+            'type'         => 'dp',
+            'amount'       => (int) $amount,
             'status'       => 'unpaid',
             'due_date'     => $data['due_date'],
         ]);
 
-        // Opsional: setelah buat DP, ubah status order → Menunggu Pembayaran (kalau masih Menunggu Konfirmasi)
         if ($order->status === 'Menunggu Konfirmasi') {
             $order->update(['status' => 'Menunggu Pembayaran']);
         }
 
         return back()->with('success', 'Invoice DP dibuat.');
     }
+
 
     // POST /admin/orders/{order}/invoices/pelunasan
     public function createPelunasan(Request $request, Order $order)
@@ -109,28 +111,64 @@ class InvoiceController extends Controller
             'due_date' => ['required', 'date'],
         ]);
 
-        $final = (float) ($order->final_amount ?? 0);
-        $paid  = (float) $order->invoices()->withSum('payments', 'amount')->get()->sum('payments_sum_amount');
-        $due   = max(0, $final - $paid);
+        $remaining = $order->remainingToInvoice(); // final - sum(invoices not cancelled)
 
-        // Jika nominal diisi, pakai itu; jika kosong, tagih seluruh sisa
-        $amount = $data['amount'] ?? $due;
+        $amount = (int) ($data['amount'] ?? $remaining);
+        $amount = max(0, min($amount, $remaining));
 
-        // Safety: cap di sisa
-        $amount = max(0, min($amount, $due));
+        // Tidak ada sisa untuk ditagihkan
+        if ($amount <= 0) {
+            return back()->with('warning', 'Tidak ada sisa yang perlu ditagihkan.');
+        }
 
         $order->invoices()->create([
             'invoice_code' => 'INV-' . now()->format('ymd') . '-' . str()->upper(str()->random(5)),
-            'amount'       => $amount,
+            'type'         => 'pelunasan',
+            'amount'       => (int) $amount,
             'status'       => 'unpaid',
             'due_date'     => $data['due_date'],
         ]);
 
-        return redirect()
-
-            ->with('success', 'Invoice pelunasan dibuat.');
+        return back()->with('success', 'Invoice pelunasan dibuat.');
     }
 
+    public function print(Invoice $invoice)
+    {
+        $invoice->loadMissing([
+            'order.client',
+            'order.items.item',
+            'payments',
+            'order.invoices.payments',
+        ]);
+
+        $order = $invoice->order;
+        $items = $order?->items ?? collect();
+
+        $orderSubtotal = (int) $items->sum(fn($r) => (int)$r->quantity * (int)$r->price);
+        $orderFinal    = (int) ($order->final_amount ?? $orderSubtotal);
+        $orderPaid     = (int) $order->invoices->sum(fn($inv) => (int) $inv->payments->sum('amount'));
+        $orderDue      = max(0, $orderFinal - $orderPaid);
+
+        $thisInvoicePaid       = (int) $invoice->payments->sum('amount');
+        $thisInvoiceRemaining  = max(0, (int) $invoice->amount - $thisInvoicePaid);
+
+        $pdf = Pdf::loadView('pdf.invoice', compact(
+            'invoice',
+            'order',
+            'items',
+            'orderSubtotal',
+            'orderFinal',
+            'orderPaid',
+            'orderDue',
+            'thisInvoicePaid',
+            'thisInvoiceRemaining'
+        ))->setPaper('a4', 'portrait');
+
+        $filename = ($invoice->invoice_code ?: "invoice-{$invoice->id}") . '.pdf';
+
+        // stream inline untuk preview di browser
+        return $pdf->stream($filename);
+    }
     public function download(Invoice $invoice)
     {
         // Pastikan semua relasi yang dibutuhkan ikut dimuat

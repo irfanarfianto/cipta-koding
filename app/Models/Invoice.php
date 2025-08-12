@@ -18,6 +18,7 @@ class Invoice extends Model
         'order_id',
         'invoice_code',
         'amount',
+        'type',
         'status',
         'due_date',
         'paid_at',
@@ -28,7 +29,15 @@ class Invoice extends Model
         'due_date' => 'date',
         'paid_at'  => 'datetime',
     ];
+    public const TYPE_DP        = 'dp';
+    public const TYPE_PELUNASAN = 'pelunasan';
+    public const TYPE_MILESTONE = 'milestone';
+    public const TYPE_FULL      = 'full';
 
+    public function scopeType($q, ?string $type)
+    {
+        return $type ? $q->where('type', $type) : $q;
+    }
     public function order()
     {
         return $this->belongsTo(Order::class);
@@ -37,5 +46,13 @@ class Invoice extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+    public function scopeOfType($q, ?string $type)
+    {
+        return $type ? $q->where('type', $type) : $q;
+    }
+    public function scopeStatus($q, ?string $st)
+    {
+        return $st ? $q->where('status', $st) : $q;
     }
 }

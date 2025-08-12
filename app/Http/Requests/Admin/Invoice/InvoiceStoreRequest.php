@@ -16,6 +16,8 @@ class InvoiceStoreRequest extends FormRequest
         return [
             'amount'   => ['required','numeric','min:0'],
             'due_date' => ['required','date'],
+            'type'     => ['nullable', 'in:dp,pelunasan,milestone,full'],
+
         ];
     }
 }
