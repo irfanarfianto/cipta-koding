@@ -3,13 +3,13 @@ import OrderStatusBadge from '@/components/orders/OrderStatusBadge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router, useForm } from '@inertiajs/react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useMemo, useState } from 'react';
 
 type ClientLite = { id: string; name: string };
@@ -54,15 +54,22 @@ function formatCurrency(n: number | string | null | undefined) {
 
 export default function Index(props: Readonly<PageProps>) {
     const { orders, filters, statuses, clients } = props;
+
+    // =========================
+    // Selection state
+    // =========================
     const [selected, setSelected] = useState<string[]>([]);
+    useEffect(() => setSelected([]), [orders.current_page, filters]); // reset selection when navigate/filter
 
-    useEffect(() => setSelected([]), [orders.current_page, filters]); // reset selection on navigation
-
+    // Keep form.ids in sync with selected
     const { data, setData, processing } = useForm<{ ids: string[]; status: string; note?: string }>({
         ids: [],
         status: filters.status ?? '',
         note: '',
     });
+    useEffect(() => {
+        setData('ids', selected);
+    }, [selected, setData]);
 
     const exportHref = useMemo(() => {
         const params = new URLSearchParams();
@@ -72,13 +79,24 @@ export default function Index(props: Readonly<PageProps>) {
         return `/admin/orders/export?${params.toString()}`;
     }, [filters]);
 
+    // Helpers for header checkbox
+    const getSelectAllState = (): boolean | 'indeterminate' => {
+        if (orders.data.length === 0) return false;
+        if (selected.length === 0) return false;
+        if (selected.length === orders.data.length) return true;
+        return 'indeterminate';
+    };
+
     const toggleAll = (checked: boolean) => {
         setSelected(checked ? orders.data.map((o) => o.id) : []);
     };
 
+    const toggleOne = (id: string, checked: boolean) => {
+        setSelected((prev) => (checked ? [...prev, id] : prev.filter((x) => x !== id)));
+    };
+
     const bulkUpdate = () => {
         if (!selected.length || !data.status) return;
-
         router.post(
             route('admin.orders.bulk-status'),
             {
@@ -92,10 +110,11 @@ export default function Index(props: Readonly<PageProps>) {
             },
         );
     };
+
     const onFilter = (next: Partial<typeof filters>) => {
         const merged = { ...filters, ...next };
         const params: Record<string, string> = {};
-        (Object.entries(merged) as [string, (string | number | null | undefined)][]).forEach(([k, v]) => {
+        (Object.entries(merged) as [string, string | number | null | undefined][]).forEach(([k, v]) => {
             if (v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && v.length === 0)) {
                 params[k] = String(v);
             }
@@ -110,65 +129,98 @@ export default function Index(props: Readonly<PageProps>) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Orders" />
 
-            <div className="flex items-center justify-between gap-3 m-4">
-                <div className="text-xl font-semibold">Orders</div>
-                <div className="flex gap-2">
-                    <Link href={route('admin.orders.create')} className="btn btn-primary">
-                        <Button>Order Baru</Button>
-                    </Link>
-                    <a href={exportHref}>
-                        <Button variant="outline">Export CSV</Button>
-                    </a>
+            <div className="m-4 sm:flex sm:items-center sm:justify-between sm:gap-3">
+                {/* Title */}
+                <h1 className="mb-3 text-xl font-semibold sm:mb-0">Orders</h1>
+
+                {/* Actions */}
+                <div className="flex w-full flex-col sm:w-auto sm:flex-row sm:items-center">
+                    {/* Buttons (wrap on small) */}
+                    <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-nowrap">
+                        <Link href={route('admin.orders.create')}>
+                            <Button className="w-full sm:w-auto">Order Baru</Button>
+                        </Link>
+
+                        <a href={exportHref}>
+                            <Button variant="outline" className="w-full sm:w-auto">
+                                Export CSV
+                            </Button>
+                        </a>
+                    </div>
+
+                    {/* Filter (dialog trigger dari komponenmu) */}
+                    <div className="sm:ml-2 mt-2 sm:mt-0 md:mt-0 lg:mt-0">
+                        <OrderFilters
+                            statuses={statuses}
+                            clients={clients}
+                            value={{
+                                ...filters,
+                                status: filters.status ?? undefined,
+                                client_id: filters.client_id ?? undefined,
+                                date_from: filters.date_from ?? undefined,
+                                date_to: filters.date_to ?? undefined,
+                                search: filters.search ?? undefined,
+                                per_page: filters.per_page ?? undefined,
+                                sort: filters.sort ?? undefined,
+                            }}
+                            onChange={onFilter}
+                        />
+                    </div>
                 </div>
             </div>
 
             <Separator className="my-4" />
 
-            <OrderFilters
-                statuses={statuses}
-                clients={clients}
-                value={{
-                    ...filters,
-                    status: filters.status ?? undefined,
-                    client_id: filters.client_id ?? undefined,
-                    date_from: filters.date_from ?? undefined,
-                    date_to: filters.date_to ?? undefined,
-                    search: filters.search ?? undefined,
-                    per_page: filters.per_page ?? undefined,
-                    sort: filters.sort ?? undefined,
-                }}
-                onChange={onFilter}
-            />
+            <Card className="m-4 mt-4">
+                {/* =========================
+            BULK BAR (conditional)
+           ========================= */}
+                {selected.length > 0 && (
+                    <AnimatePresence>
+                        {selected.length > 0 && (
+                            <motion.div
+                                key="bulk-bar"
+                                initial={{ y: -100, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                exit={{ y: -100, opacity: 0 }}
+                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                className="fixed top-6 left-1/2 z-50 flex -translate-x-1/2 flex-wrap items-center gap-2 rounded-lg border bg-background p-4 shadow-lg"
+                            >
+                                <div className="text-sm text-muted-foreground">
+                                    Dipilih: <span className="font-medium">{selected.length}</span>
+                                </div>
 
-            <Card className="mt-4 m-4">
-                <div className="flex items-center gap-2 p-4">
-                    <Select value={data.status} onValueChange={(v) => setData('status', v)}>
-                        <SelectTrigger className="w-56">
-                            <SelectValue placeholder="Set status…" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {statuses.map((s) => (
-                                <SelectItem key={s} value={s}>
-                                    {s}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Input className="w-80" placeholder="Catatan (opsional)" value={data.note} onChange={(e) => setData('note', e.target.value)} />
-                    <Button disabled={!selected.length || !data.status || processing} onClick={bulkUpdate}>
-                        Bulk Update ({selected.length})
-                    </Button>
-                </div>
+                                <Select value={data.status} onValueChange={(v) => setData('status', v)}>
+                                    <SelectTrigger className="w-56">
+                                        <SelectValue placeholder="Set status…" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {statuses.map((s) => (
+                                            <SelectItem key={s} value={s}>
+                                                {s}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+
+                                <Button disabled={!data.status || processing} onClick={bulkUpdate}>
+                                    Bulk Update ({selected.length})
+                                </Button>
+
+                                <Button variant="outline" onClick={() => setSelected([])}>
+                                    Batalkan pilihan
+                                </Button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                )}
 
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-10">
-                                    <Checkbox
-                                        checked={selected.length === orders.data.length && orders.data.length > 0}
-                                        onCheckedChange={(v) => toggleAll(Boolean(v))}
-                                    />
+                                    <Checkbox checked={getSelectAllState()} onCheckedChange={(v) => toggleAll(Boolean(v))} />
                                 </TableHead>
                                 <TableHead>Kode</TableHead>
                                 <TableHead>Klien</TableHead>
@@ -181,15 +233,10 @@ export default function Index(props: Readonly<PageProps>) {
                         <TableBody>
                             {orders.data.map((o) => {
                                 const isChecked = selected.includes(o.id);
-
-                                function handleCheckboxChange(v: boolean) {
-                                    setSelected((prev) => (v ? [...prev, o.id] : prev.filter((id) => id !== o.id)));
-                                }
-
                                 return (
                                     <TableRow key={o.id}>
                                         <TableCell>
-                                            <Checkbox checked={isChecked} onCheckedChange={handleCheckboxChange} />
+                                            <Checkbox checked={isChecked} onCheckedChange={(v) => toggleOne(o.id, Boolean(v))} />
                                         </TableCell>
                                         <TableCell className="font-mono">{o.order_code}</TableCell>
                                         <TableCell>

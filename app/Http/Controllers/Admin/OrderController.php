@@ -52,10 +52,14 @@ class OrderController extends Controller
             ->paginate($filters['per_page'] ?? 10)
             ->withQueryString();
 
+        Inertia::share([
+            'order_pending_count' => fn() => Order::where('status', Order::STATUS_MENUNGGU_KONFIRMASI)->count(),
+        ]);
+        
         return Inertia::render('Admin/Orders/Index', [
             'orders'   => $orders,
             'filters'  => $filters,
-            'statuses' => ['Menunggu Konfirmasi', 'Menunggu Pembayaran', 'Sedang Dikerjakan', 'Review', 'Selesai', 'Dibatalkan'],
+            'statuses' => Order::STATUSES,
             'clients'  => Client::orderBy('name')->get(['id', 'name']),
         ]);
     }
@@ -104,7 +108,7 @@ class OrderController extends Controller
         return Inertia::render('Admin/Orders/Create', [
             'clients'  => Client::orderBy('name')->get(['id', 'name', 'email']),
             'services' => Service::where('is_active', true)->orderBy('name')->get(['id', 'name', 'base_price']),
-            'statuses' => ['Menunggu Konfirmasi', 'Menunggu Pembayaran', 'Sedang Dikerjakan', 'Review', 'Selesai', 'Dibatalkan'],
+            'statuses' => Order::STATUSES,
             'defaults' => [
                 'client_id' => null,
                 'notes' => null,
@@ -128,10 +132,11 @@ class OrderController extends Controller
             $order = Order::create([
                 'client_id'    => $data['client_id'],
                 'order_code'   => 'ORD-' . now()->format('ymd') . '-' . Str::upper(Str::random(5)),
-                'status'       => $data['status'] ?? 'Menunggu Konfirmasi',
+                'status'       => $data['status'] ?? Order::STATUS_MENUNGGU_KONFIRMASI,
                 'final_amount' => 0,
                 'notes'        => $data['notes'] ?? null,
             ]);
+
 
             // Group/merge items by service(+price)
             $bucket = [];
@@ -325,9 +330,10 @@ class OrderController extends Controller
         ]);
 
         // opsional: setelah DP dibuat, set status order → Menunggu Pembayaran
-        if ($order->status === 'Menunggu Konfirmasi') {
-            $order->update(['status' => 'Menunggu Pembayaran']);
+        if ($order->status === Order::STATUS_MENUNGGU_KONFIRMASI) {
+            $order->update(['status' => Order::STATUS_MENUNGGU_PEMBAYARAN]);
         }
+
 
         return redirect()->route('admin.invoices.show', $invoice)->with('success', 'Invoice DP dibuat.');
     }

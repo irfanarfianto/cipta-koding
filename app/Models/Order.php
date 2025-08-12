@@ -25,6 +25,22 @@ class Order extends Model
     protected $casts = [
         'final_amount' => 'integer',
     ];
+    
+    public const STATUS_MENUNGGU_KONFIRMASI = 'Menunggu Konfirmasi';
+    public const STATUS_MENUNGGU_PEMBAYARAN = 'Menunggu Pembayaran';
+    public const STATUS_SEDANG_DIKERJAKAN = 'Sedang Dikerjakan';
+    public const STATUS_REVIEW = 'Review';
+    public const STATUS_SELESAI = 'Selesai';
+    public const STATUS_DIBATALKAN = 'Dibatalkan';
+
+    public const STATUSES = [
+        self::STATUS_MENUNGGU_KONFIRMASI,
+        self::STATUS_MENUNGGU_PEMBAYARAN,
+        self::STATUS_SEDANG_DIKERJAKAN,
+        self::STATUS_REVIEW,
+        self::STATUS_SELESAI,
+        self::STATUS_DIBATALKAN,
+    ];
 
     public function client()
     {

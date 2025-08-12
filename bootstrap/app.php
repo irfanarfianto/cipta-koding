@@ -8,6 +8,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Inertia\Inertia;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -25,12 +26,34 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        $exceptions->render(function ($request) {
-            if ($request->header('X-Inertia')) {
-                return Inertia::render('Errors/NotFound', [
-                    'status' => 404,
+        $exceptions->render(function (Throwable $e, $request) {
+            $response = null;
+
+            // Hanya handle untuk request Inertia
+            if (!$request->header('X-Inertia')) {
+                $response = null; // biar fallback ke handler default Laravel
+            } elseif ($e instanceof NotFoundHttpException) {
+                // 404
+                $response = Inertia::render('Errors/NotFound', [
+                    'status'  => 404,
                     'message' => 'Halaman tidak ditemukan',
                 ])->toResponse($request)->setStatusCode(404);
+            } elseif ($e instanceof HttpExceptionInterface) {
+                // HTTP exception lain (403/401/419/429/dst) -> render ServerError dengan status asli
+                $status = $e->getStatusCode();
+                $response = Inertia::render('Errors/ServerError', [
+                    'status'  => $status,
+                    // Hindari bocor detail di production; tampilkan message hanya saat debug
+                    'message' => config('app.debug') ? $e->getMessage() : 'Terjadi kesalahan pada server',
+                ])->toResponse($request)->setStatusCode($status);
+            } else {
+                // Non-HTTP exception -> 500
+                $response = Inertia::render('Errors/ServerError', [
+                    'status'  => 500,
+                    'message' => config('app.debug') ? $e->getMessage() : 'Terjadi kesalahan pada server',
+                ])->toResponse($request)->setStatusCode(500);
             }
+
+            return $response;
         });
     })->create();

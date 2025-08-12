@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Order;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -56,6 +57,8 @@ class HandleInertiaRequests extends Middleware
                 'error'   => fn() => $request->session()->get('error'),
                 'info'    => fn() => $request->session()->get('info'),
             ],
+            'order_pending_count' => fn() =>
+            Order::where('status', Order::STATUS_MENUNGGU_KONFIRMASI)->count(),
         ];
     }
 }

@@ -18,5 +18,6 @@ Route::fallback(function () {
         'message' => 'Halaman tidak ditemukan',
     ])->toResponse(request())->setStatusCode(404);
 });
+
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

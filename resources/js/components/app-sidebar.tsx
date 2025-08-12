@@ -2,7 +2,7 @@ import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     CreditCard,
     FileText,
@@ -18,6 +18,8 @@ import {
     Wrench,
 } from 'lucide-react';
 import AppLogo from './app-logo';
+import { Badge } from './ui/badge';
+type PageProps = { order_pending_count?: number };
 
 const mainNavItems: NavItem[] = [
     { title: 'Dashboard', href: '/dashboard', icon: LayoutGrid },
@@ -42,8 +44,25 @@ const mainNavItems: NavItem[] = [
     { title: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 
-
 export function AppSidebar() {
+    const { order_pending_count = 0 } = usePage().props as PageProps;
+
+    // Sisipkan badge hanya untuk item "Orders"
+    const itemsWithBadge: NavItem[] = mainNavItems.map((it) =>
+        it.title === 'Orders'
+            ? {
+                  ...it,
+                  // tambahkan properti opsional `suffix`
+                  // (lihat perubahan di NavMain di bawah)
+                  suffix:
+                      order_pending_count > 0 ? (
+                          <Badge variant="secondary" className="ml-auto">
+                              {order_pending_count}
+                          </Badge>
+                      ) : null,
+              }
+            : it,
+    );
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
@@ -59,7 +78,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={itemsWithBadge} />
             </SidebarContent>
 
             <SidebarFooter>
