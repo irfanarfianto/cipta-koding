@@ -6,9 +6,10 @@ use App\Http\Controllers\Admin\InvoiceController;
 
 
 Route::prefix('invoices')->name('invoices.')->group(function () {
-    Route::get('/', fn () => Inertia::render('Admin/Invoices/Index'))->name('index');
+    Route::get('/', fn() => Inertia::render('Admin/Invoices/Index'))->name('index');
     Route::get('/{order}/invoices/dp', [InvoiceController::class, 'createDp'])->name('orders.invoices.dp');
     Route::get('/{order}/invoices/pelunasan', [InvoiceController::class, 'createPelunasan'])->name('orders.invoices.pelunasan');
-
-    Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('invoices.show');
+    Route::get('/{invoice}/download', [\App\Http\Controllers\Admin\InvoiceController::class, 'download'])
+        ->name('download');
+    Route::get('/{invoice}', [InvoiceController::class, 'show'])->name('show');
 });

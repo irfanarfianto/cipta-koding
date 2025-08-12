@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { downloadBlob } from '@/utils/download';
 import { formatRupiah, formatRupiahInput, parseRupiah } from '@/utils/formatCurrency';
 import { formatTanggal } from '@/utils/formatDate';
 import { router, useForm } from '@inertiajs/react';
@@ -37,7 +38,7 @@ export default function CreateInvoiceSheet({ finalAmount, paid, due, dpUrl, pelu
         const d = new Date();
         d.setDate(d.getDate() + 7);
         return d;
-    });
+    });const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
     const form = useForm<{ amount?: number | null; percent?: number | null; due_date: string }>({
         amount: null,
@@ -95,6 +96,19 @@ export default function CreateInvoiceSheet({ finalAmount, paid, due, dpUrl, pelu
             },
         });
     };
+    const handleDownload = async (inv: { id: string; invoice_code: string }) => {
+        try {
+            setDownloadingId(inv.id);
+            const url = route('admin.invoices.download', inv.id);
+            const filename = (inv.invoice_code ? inv.invoice_code : 'invoice-' + inv.id) + '.pdf';
+            await downloadBlob(url, filename);
+        } catch (e) {
+            console.error(e);
+            // optional: tampilkan toast error
+        } finally {
+            setDownloadingId(null);
+        }
+    };
 
     return (
         <Sheet open={open} onOpenChange={setOpen}>
@@ -103,7 +117,7 @@ export default function CreateInvoiceSheet({ finalAmount, paid, due, dpUrl, pelu
             </SheetTrigger>
 
             {/* side bisa diubah: "right" | "left" | "top" | "bottom" */}
-            <SheetContent className="w-full sm:max-w-lg overflow-y-auto" side="right">
+            <SheetContent className="w-full overflow-y-auto sm:max-w-lg" side="right" aria-describedby={undefined}>
                 <SheetHeader>
                     <SheetTitle>Buat Invoice</SheetTitle>
                 </SheetHeader>
@@ -118,7 +132,13 @@ export default function CreateInvoiceSheet({ finalAmount, paid, due, dpUrl, pelu
                                         Jatuh tempo: {formatTanggal(inv.due_date)} • Status: {inv.status}
                                     </div>
                                 </div>
-                                <div className="text-right font-semibold">{formatRupiah(inv.amount)}</div>
+
+                                <div className="flex items-center gap-2">
+                                    <div className="text-right font-semibold">{formatRupiah(inv.amount)}</div>
+                                    <Button variant="outline" size="sm" onClick={() => handleDownload(inv)} disabled={downloadingId === inv.id}>
+                                        {downloadingId === inv.id ? 'Mengunduh…' : 'Unduh PDF'}
+                                    </Button>
+                                </div>
                             </div>
                         ))}
                         {(order.invoices ?? []).length === 0 && <div className="text-sm text-muted-foreground">Belum ada invoice.</div>}

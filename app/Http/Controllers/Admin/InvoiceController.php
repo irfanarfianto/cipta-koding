@@ -10,6 +10,7 @@ use App\Models\Order;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 
 class InvoiceController extends Controller
@@ -128,5 +129,53 @@ class InvoiceController extends Controller
         return redirect()
 
             ->with('success', 'Invoice pelunasan dibuat.');
+    }
+
+    public function download(Invoice $invoice)
+    {
+        // Pastikan semua relasi yang dibutuhkan ikut dimuat
+        $invoice->loadMissing([
+            'order.client',
+            'order.items.item', // item adalah relasi ke model produk/jasa; sesuaikan kalau namanya beda
+            'payments',
+            'order.invoices.payments', // untuk hitung total paid order
+        ]);
+
+        $order = $invoice->order;
+        $items = $order?->items ?? collect();
+
+        // Hitung subtotal order dari items (qty * price)
+        $orderSubtotal = (int) $items->sum(function ($row) {
+            return ((int) $row->quantity) * ((int) $row->price);
+        });
+
+        // Final amount order (pakai final_amount kalau ada; fallback subtotal)
+        $orderFinal = (int) ($order->final_amount ?? $orderSubtotal);
+
+        // Total pembayaran terhadap order (dari semua invoice)
+        $orderPaid = (int) $order->invoices->sum(function ($inv) {
+            return (int) $inv->payments->sum('amount');
+        });
+
+        $orderDue = max(0, $orderFinal - $orderPaid);
+
+        // Ringkasan invoice ini
+        $thisInvoicePaid = (int) $invoice->payments->sum('amount');
+        $thisInvoiceRemaining = max(0, (int) $invoice->amount - $thisInvoicePaid);
+
+        $pdf = Pdf::loadView('pdf.invoice', [
+            'invoice'             => $invoice,
+            'order'               => $order,
+            'items'               => $items,
+            'orderSubtotal'       => $orderSubtotal,
+            'orderFinal'          => $orderFinal,
+            'orderPaid'           => $orderPaid,
+            'orderDue'            => $orderDue,
+            'thisInvoicePaid'     => $thisInvoicePaid,
+            'thisInvoiceRemaining' => $thisInvoiceRemaining,
+        ])->setPaper('a4', 'portrait');
+
+        $filename = ($invoice->invoice_code ?: "invoice-{$invoice->id}") . '.pdf';
+        return $pdf->download($filename);
     }
 }
