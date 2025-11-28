@@ -122,8 +122,8 @@ export default function RevenueBarMonthly({
             </CardHeader>
 
             <CardContent className="px-2 sm:p-6">
-                <ChartContainer config={chartConfig} className="w-full" style={{ height }}>
-                    <ResponsiveContainer width="100%" aspect={3.5}>
+                <div style={{ height: height, width: '100%' }}>
+                    <ChartContainer config={chartConfig} className="h-full w-full">
                         <BarChart accessibilityLayer data={monthly} margin={{ left: 12, right: 12 }}>
                             <CartesianGrid vertical={false} />
                             <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} minTickGap={24} />
@@ -145,8 +145,8 @@ export default function RevenueBarMonthly({
                             />
                             <Bar dataKey="revenue" name="Pendapatan" fill="var(--color-revenue)" radius={[6, 6, 0, 0]} />
                         </BarChart>
-                    </ResponsiveContainer>
-                </ChartContainer>
+                    </ChartContainer>
+                </div>
             </CardContent>
         </Card>
     );

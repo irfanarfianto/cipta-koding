@@ -14,10 +14,14 @@ class PaymentStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount'    => ['required','numeric','min:0.0001'],
-            'method'    => ['nullable','string','max:50'],
-            'reference' => ['nullable','string','max:100'],
-            'paid_at'   => ['nullable','date'],
+            'amount'          => ['required', 'numeric', 'min:0.0001'],
+            'method'          => ['nullable', 'string', 'max:50'],
+            'reference'       => ['nullable', 'string', 'max:100'],
+            'paid_at'         => ['nullable', 'date'],
+            'status'          => ['nullable', 'in:pending,success,failed,refunded'],
+            'payment_gateway' => ['nullable', 'string', 'max:50'],
+            'proof_url'       => ['nullable', 'string', 'url'],
+            'notes'           => ['nullable', 'string'],
         ];
     }
     

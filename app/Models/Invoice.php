@@ -22,12 +22,22 @@ class Invoice extends Model
         'status',
         'due_date',
         'paid_at',
+        'tax_amount',
+        'tax_percentage',
+        'subtotal',
+        'notes',
+        'payment_method',
+        'reminder_sent_at',
     ];
 
     protected $casts = [
-        'amount'   => 'integer',
-        'due_date' => 'date',
-        'paid_at'  => 'datetime',
+        'amount'           => 'decimal:2',
+        'tax_amount'       => 'decimal:2',
+        'tax_percentage'   => 'decimal:2',
+        'subtotal'         => 'decimal:2',
+        'due_date'         => 'date',
+        'paid_at'          => 'datetime',
+        'reminder_sent_at' => 'datetime',
     ];
     public const TYPE_DP        = 'dp';
     public const TYPE_PELUNASAN = 'pelunasan';

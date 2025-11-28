@@ -120,7 +120,7 @@ public function index()
 
 **Priority:** 🔴 High  
 **Complexity:** ⭐⭐⭐⭐  
-**Status:** Planning
+**Status:** ✅ Implemented (Admin Side)
 
 #### Description
 Showcase portfolio projects untuk membangun kredibilitas dan menampilkan kemampuan tim.
@@ -988,7 +988,7 @@ public function updateStatus(Order $order, Request $request)
 
 **Priority:** 🟡 Medium  
 **Complexity:** ⭐⭐⭐⭐  
-**Status:** Planning
+**Status:** 🚧 Partially Implemented
 
 #### Description
 Customer Relationship Management untuk mengelola data dan interaksi client.

@@ -20,6 +20,7 @@ class ClientController extends Controller
                 $s = request('search');
                 $q->where('name',$like,"%$s%")->orWhere('email',$like,"%$s%");
             })
+            ->withCount('orders')
             ->orderBy('name')
             ->paginate(10)->withQueryString();
 
@@ -42,8 +43,34 @@ class ClientController extends Controller
 
     public function show(Client $client)
     {
-        $client->loadCount('orders');
-        return Inertia::render('Admin/Clients/Show', ['client'=>$client]);
+        $client->load(['orders.invoices.payments', 'orders.items']);
+        
+        $orders = $client->orders()->latest()->paginate(5);
+        
+        // Calculate stats
+        $totalOrders = $client->orders()->count();
+        $totalSpent = $client->orders->flatMap->invoices->flatMap->payments->sum('amount');
+        $averageOrderValue = $totalOrders > 0 ? $totalSpent / $totalOrders : 0;
+        
+        // Simple segmentation logic
+        $segment = 'Regular';
+        if ($totalSpent > 10000000) { // Example threshold: 10jt
+            $segment = 'VIP';
+        } elseif ($totalOrders === 0) {
+            $segment = 'New';
+        }
+
+        return Inertia::render('Admin/Clients/Show', [
+            'client' => $client,
+            'orders' => $orders,
+            'stats' => [
+                'total_orders' => $totalOrders,
+                'total_spent' => $totalSpent,
+                'average_order_value' => $averageOrderValue,
+                'segment' => $segment,
+                'last_order' => $client->orders()->latest()->first()?->created_at,
+            ]
+        ]);
     }
 
     public function edit(Client $client)

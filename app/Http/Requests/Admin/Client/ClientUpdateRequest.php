@@ -18,7 +18,11 @@ class ClientUpdateRequest extends FormRequest
             'name'         => ['required','string','max:120'],
             'email'        => ['required','email',"unique:clients,email,{$id},id"],
             'phone_number' => ['nullable','string','max:20'],
+            'company_name' => ['nullable','string','max:120'],
+            'company_website'=> ['nullable','url','max:255'],
             'address'      => ['nullable','string'],
+            'status'       => ['nullable','string','in:active,inactive'],
+            'metadata'     => ['nullable','array'],
         ];
     }
 }

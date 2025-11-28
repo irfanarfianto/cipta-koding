@@ -14,9 +14,14 @@ class InvoiceStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'amount'   => ['required','numeric','min:0'],
-            'due_date' => ['required','date'],
-            'type'     => ['nullable', 'in:dp,pelunasan,milestone,full'],
+            'amount'         => ['required', 'numeric', 'min:0'],
+            'due_date'       => ['required', 'date'],
+            'type'           => ['nullable', 'in:dp,pelunasan,milestone,full'],
+            'tax_amount'     => ['nullable', 'numeric', 'min:0'],
+            'tax_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'subtotal'       => ['nullable', 'numeric', 'min:0'],
+            'notes'          => ['nullable', 'string'],
+            'payment_method' => ['nullable', 'string', 'max:50'],
 
         ];
     }

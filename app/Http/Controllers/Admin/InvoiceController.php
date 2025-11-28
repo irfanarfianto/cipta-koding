@@ -52,14 +52,32 @@ class InvoiceController extends Controller
         $data = $request->validated();
 
         $invoice = $order->invoices()->create([
-            'invoice_code' => 'INV-' . now()->format('ymd') . '-' . str()->upper(str()->random(5)),
-            'type'         => $data['type'] ?? 'full',
-            'amount'       => (int) $data['amount'],
-            'due_date'     => $data['due_date'],
-            'status'       => 'unpaid',
+            'invoice_code'   => 'INV-' . now()->format('ymd') . '-' . str()->upper(str()->random(5)),
+            'type'           => $data['type'] ?? 'full',
+            'amount'         => (float) $data['amount'],
+            'due_date'       => $data['due_date'],
+            'status'         => 'unpaid',
+            'tax_amount'     => $data['tax_amount'] ?? 0,
+            'tax_percentage' => $data['tax_percentage'] ?? 0,
+            'subtotal'       => $data['subtotal'] ?? $data['amount'],
+            'notes'          => $data['notes'] ?? null,
+            'payment_method' => $data['payment_method'] ?? null,
         ]);
 
         return redirect()->route('admin.invoices.show', $invoice)->with('success', 'Invoice dibuat.');
+    }
+
+    public function cancel(Invoice $invoice)
+    {
+        $invoice->update(['status' => 'cancelled']);
+        return back()->with('success', 'Invoice dibatalkan.');
+    }
+
+    public function sendReminder(Invoice $invoice)
+    {
+        $invoice->update(['reminder_sent_at' => now()]);
+        // TODO: Implement actual email/WA sending logic here
+        return back()->with('success', 'Pengingat pembayaran dikirim.');
     }
 
 

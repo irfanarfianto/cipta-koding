@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { formatTanggal } from '@/utils/formatDate';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, usePage, router } from '@inertiajs/react';
 
 interface Invoice {
     id: number;
@@ -42,6 +42,22 @@ export default function Show() {
                     </div>
                 </div>
                 <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => {
+                        if (confirm('Send payment reminder?')) {
+                            router.post(route('admin.invoices.send-reminder', invoice.id));
+                        }
+                    }}>
+                        Send Reminder
+                    </Button>
+                    {invoice.status !== 'cancelled' && invoice.status !== 'paid' && (
+                        <Button variant="destructive" onClick={() => {
+                            if (confirm('Are you sure you want to cancel this invoice?')) {
+                                router.post(route('admin.invoices.cancel', invoice.id));
+                            }
+                        }}>
+                            Cancel Invoice
+                        </Button>
+                    )}
                     <Button asChild>
                         <a href={`/admin/invoices/${invoice.id}/download`}>Download PDF</a>
                     </Button>

@@ -20,10 +20,27 @@ class Order extends Model
         'status',
         'final_amount',
         'notes',
+        // New fields from schema v2
+        'discount_amount',
+        'discount_type',
+        'discount_code',
+        'estimated_completion_date',
+        'priority',
+        'assigned_to',
+        'confirmed_at',
+        'started_at',
+        'completed_at',
+        'cancelled_at',
     ];
 
     protected $casts = [
         'final_amount' => 'integer',
+        'discount_amount' => 'integer',
+        'estimated_completion_date' => 'date',
+        'confirmed_at' => 'datetime',
+        'started_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'cancelled_at' => 'datetime',
     ];
     
     public const STATUS_MENUNGGU_KONFIRMASI = 'Menunggu Konfirmasi';
@@ -66,6 +83,12 @@ class Order extends Model
     {
         return $this->hasMany(OrderStatusHistory::class);
     }
+
+    public function assignee()
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
+
     public function remainingToInvoice(): int
     {
         $final = (int) ($this->final_amount ?? 0);

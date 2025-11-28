@@ -14,7 +14,24 @@ class Client extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
-    protected $fillable = ['name','email','phone_number','address'];
+    protected $fillable = [
+        'name',
+        'email',
+        'phone_number',
+        'address',
+        // New fields from schema v2
+        'company_name',
+        'company_website',
+        'type',
+        'status',
+        'referred_by',
+        'referral_code',
+        'metadata',
+    ];
+
+    protected $casts = [
+        'metadata' => 'array',
+    ];
 
     public function orders()
     {
@@ -29,5 +46,16 @@ class Client extends Model
     public function testimonials()
     {
         return $this->hasMany(Testimonial::class);
+    }
+
+    // Referral relationships
+    public function referrer()
+    {
+        return $this->belongsTo(Client::class, 'referred_by');
+    }
+
+    public function referrals()
+    {
+        return $this->hasMany(Client::class, 'referred_by');
     }
 }

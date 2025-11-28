@@ -11,12 +11,14 @@ Route::prefix('orders')->name('orders.')->group(function () {
     Route::get('/export',         [OrderController::class, 'exportCsv'])->name('export'); // CSV
     Route::get('/create',         [OrderController::class, 'create'])->name('create');
     Route::post('/',              [OrderController::class, 'store'])->name('store');
+    Route::get(ORDER_ROUTE . '/edit', [OrderController::class, 'edit'])->name('edit'); // Added edit route
     Route::get(ORDER_ROUTE,        [OrderController::class, 'show'])->name('show');
     Route::put(ORDER_ROUTE,        [OrderController::class, 'update'])->name('update');
     Route::delete(ORDER_ROUTE,     [OrderController::class, 'destroy'])->name('destroy');
 
     // Status
     Route::patch(ORDER_ROUTE . '/status',  [OrderController::class, 'updateStatus'])->name('update-status');
+    Route::patch(ORDER_ROUTE . '/assign',  [OrderController::class, 'assign'])->name('assign');
     Route::post('/bulk/status',      [OrderController::class, 'bulkUpdateStatus'])->name('bulk-status');
 
     // Items

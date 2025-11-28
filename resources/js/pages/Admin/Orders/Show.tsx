@@ -1,122 +1,284 @@
-import CreateInvoiceDrawer from '@/components/orders/invoices/CreateInvoiceDrawer';
-import OrderMainInfo from '@/components/orders/items/OrderMainInfo';
-import OrderTimeline from '@/components/orders/items/OrderTimeline';
-import PaymentSummary from '@/components/orders/items/PaymentSummary';
-import StatusUpdateForm from '@/components/orders/items/StatusUpdateForm';
-import OrderItemsTable from '@/components/orders/OrderItemsTable';
-import OrderStatusBadge from '@/components/orders/OrderStatusBadge';
-import { Card } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
-import { formatRupiah } from '@/utils/formatCurrency';
-import { Head } from '@inertiajs/react';
+import React from 'react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
+import AdminLayout from '@/layouts/AdminLayout';
+import { ArrowLeft, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Badge } from '@/components/ui/badge';
 
-type Client = { id: string; name: string; email?: string; phone_number?: string };
-type ServiceLite = { id: string; name: string; base_price?: number | string | null };
-type Payment = { id: string; amount: number | string; paid_at?: string | null; method?: string | null };
-type Invoice = { id: string; invoice_code: string; amount: number | string; status: string; due_date?: string; payments: Payment[] };
-type History = {
-    id: string;
-    from_status?: string | null;
-    to_status: string;
-    note?: string | null;
-    created_at: string;
-    changer?: { id: string; name: string };
-};
-type ItemRow = { id: string; item_id: string; item_type: string; quantity: number; price: number | string; item?: { id: string; name?: string } };
-
-type PageProps = {
-    order: {
-        id: string;
-        order_code: string;
-        status: string;
-        final_amount: number | string | null;
-        notes?: string | null;
-        client?: Client;
-        items?: ItemRow[];
-        invoices?: Invoice[];
-        statusHistories?: History[];
-        created_at: string;
-        updated_at: string;
-    };
+interface Props {
+    order: any;
     paid: number;
     due: number;
-    statuses?: string[];
-    services?: ServiceLite[];
-};
+    statuses: string[];
+    users: any[];
+}
 
-const breadcrumbs = (order_code: string): BreadcrumbItem[] => [
-    { title: 'Dashboard', href: '/dashboard' },
-    { title: 'Orders', href: '/admin/orders' },
-    { title: order_code, href: `/admin/orders/${order_code}` },
-];
+export default function OrderShow({ order, paid, due, statuses, users }: Props) {
+    const { data, setData, patch, processing } = useForm({
+        status: order.status,
+        note: '',
+    });
 
-export default function Show(props: Readonly<PageProps>) {
-    const { order, paid, due } = props;
-
-    const statuses: string[] = props.statuses ?? [];
-    const items: ItemRow[] = order.items ?? [];
-    const histories: History[] = order.statusHistories ?? [];
+    const handleStatusUpdate = (e: React.FormEvent) => {
+        e.preventDefault();
+        patch(route('admin.orders.update-status', order.id), {
+            preserveScroll: true,
+        });
+    };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs(order.order_code)}>
+        <AdminLayout>
             <Head title={`Order ${order.order_code}`} />
 
-            {/* Header: stack di mobile, row di md+ */}
-            <div className="px-4 pt-4 sm:px-6">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                    <Button variant="outline" size="icon" asChild>
+                        <Link href={route('admin.orders.index')}>
+                            <ArrowLeft className="h-4 w-4" />
+                        </Link>
+                    </Button>
                     <div>
-                        <div className="text-lg font-semibold sm:text-xl">Order {order.order_code}</div>
-                        <div className="flex items-center">
-                            <div className="text-xs text-muted-foreground sm:text-sm">{new Date(order.created_at).toLocaleString('id-ID')}</div>
-                            <div className="inline-flex items-center md:ml-1">
-                                <OrderStatusBadge status={order.status} />
+                        <h1 className="text-2xl font-bold tracking-tight">Order #{order.order_code}</h1>
+                        <p className="text-sm text-muted-foreground">
+                            Created on {format(new Date(order.created_at), 'PPP')}
+                        </p>
+                    </div>
+                </div>
+                <div className="flex space-x-3">
+                    <Button variant="outline" asChild>
+                        <Link href={route('admin.orders.edit', order.id)}>
+                            Edit Order
+                        </Link>
+                    </Button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                {/* Main Content */}
+                <div className="space-y-6 lg:col-span-2">
+                    {/* Order Items */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Order Items</CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <ul className="divide-y">
+                                {order.items.map((item: any) => (
+                                    <li key={item.id} className="flex items-center justify-between p-6">
+                                        <div>
+                                            <p className="font-medium text-primary">{item.item?.name || 'Unknown Item'}</p>
+                                            <p className="text-sm text-muted-foreground">{item.item_type}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm text-muted-foreground">
+                                                Rp {Number(item.price).toLocaleString()} x {item.quantity}
+                                            </p>
+                                            <p className="font-bold">
+                                                Rp {Number(item.price * item.quantity).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                            <div className="bg-muted/50 p-6 flex justify-between items-center border-t">
+                                <span className="font-medium">Total Amount</span>
+                                <span className="text-lg font-bold">Rp {Number(order.final_amount).toLocaleString()}</span>
                             </div>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
 
-                    <div className="mt-1 flex w-full gap-2 md:mt-0 md:w-auto">
-                        {/* <Link href={route('admin.orders.index')} className="w-full md:w-auto">
-                            <Button variant="outline" className="w-full md:w-auto">
-                                Kembali
+                    {/* Invoices & Payments */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Invoices & Payments</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mb-6">
+                                <div className="p-4 rounded-lg bg-green-50 border border-green-100">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <CheckCircle className="w-4 h-4 text-green-600" />
+                                        <span className="text-sm font-medium text-green-800">Paid Amount</span>
+                                    </div>
+                                    <p className="text-2xl font-bold text-green-900">Rp {paid.toLocaleString()}</p>
+                                </div>
+                                <div className="p-4 rounded-lg bg-red-50 border border-red-100">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <XCircle className="w-4 h-4 text-red-600" />
+                                        <span className="text-sm font-medium text-red-800">Due Amount</span>
+                                    </div>
+                                    <p className="text-2xl font-bold text-red-900">Rp {due.toLocaleString()}</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 className="text-sm font-medium mb-4">Invoices</h4>
+                                <ul className="divide-y border rounded-md">
+                                    {order.invoices.map((invoice: any) => (
+                                        <li key={invoice.id} className="p-4 flex justify-between items-center">
+                                            <div>
+                                                <p className="font-medium">{invoice.invoice_code}</p>
+                                                <p className="text-xs text-muted-foreground">Due: {invoice.due_date}</p>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <Badge variant={invoice.status === 'paid' ? 'default' : 'secondary'}>
+                                                    {invoice.status}
+                                                </Badge>
+                                                <span className="font-medium">Rp {Number(invoice.amount).toLocaleString()}</span>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Sidebar Info */}
+                <div className="space-y-6">
+                    {/* Client Info */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Client Information</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                                    {order.client.name.charAt(0)}
+                                </div>
+                                <div>
+                                    <p className="font-medium">{order.client.name}</p>
+                                    <p className="text-sm text-muted-foreground">{order.client.email}</p>
+                                </div>
+                            </div>
+                            <div className="space-y-2 text-sm text-muted-foreground">
+                                <p>{order.client.phone_number}</p>
+                                <p>{order.client.company_name}</p>
+                            </div>
+                            <Button variant="link" className="px-0 mt-2" asChild>
+                                <Link href={route('admin.clients.show', order.client.id)}>
+                                    View Client Profile &rarr;
+                                </Link>
                             </Button>
-                        </Link> */}
-                        <CreateInvoiceDrawer
-                            finalAmount={Number(order.final_amount ?? 0)}
-                            paid={Number(paid ?? 0)}
-                            due={Number(due ?? 0)}
-                            dpUrl={route('admin.orders.invoice.dp', order.id)}
-                            pelunasanUrl={route('admin.orders.invoice.pelunasan', order.id)}
-                        />
-                    </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Team Assignment */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Team Assignment</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-4">
+                                <div className="grid gap-2">
+                                    <label className="text-sm font-medium">Assigned Developer</label>
+                                    <Select 
+                                        value={order.assigned_to || ''} 
+                                        onValueChange={(val) => {
+                                            router.patch(route('admin.orders.assign', order.id), {
+                                                assigned_to: val === 'unassigned' ? null : val
+                                            }, {
+                                                preserveScroll: true,
+                                            });
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select Developer" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="unassigned">Unassigned</SelectItem>
+                                            {users.map((u) => (
+                                                <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                {order.assigned_to && (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                                        <span>Currently assigned to <strong>{order.assignee?.name}</strong></span>
+                                    </div>
+                                )}
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Status Management */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Update Status</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleStatusUpdate} className="space-y-4">
+                                <div className="grid gap-2">
+                                    <label className="text-sm font-medium">Status</label>
+                                    <Select 
+                                        value={data.status} 
+                                        onValueChange={(val) => setData('status', val)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select Status" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {statuses.map((s) => (
+                                                <SelectItem key={s} value={s}>{s}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="grid gap-2">
+                                    <label className="text-sm font-medium">Note (Optional)</label>
+                                    <textarea
+                                        rows={3}
+                                        value={data.note}
+                                        onChange={(e) => setData('note', e.target.value)}
+                                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        placeholder="Add a note..."
+                                    />
+                                </div>
+                                <Button type="submit" className="w-full" disabled={processing}>
+                                    {processing ? 'Updating...' : 'Update Status'}
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+
+                    {/* Timeline */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Timeline</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="relative pl-4 border-l space-y-6">
+                                {order.status_histories?.map((history: any) => (
+                                    <div key={history.id} className="relative">
+                                        <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-primary ring-4 ring-background" />
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-sm font-medium">
+                                                Changed to {history.status}
+                                            </p>
+                                            {history.note && (
+                                                <p className="text-xs text-muted-foreground italic">"{history.note}"</p>
+                                            )}
+                                            <span className="text-xs text-muted-foreground">
+                                                {format(new Date(history.created_at), 'MMM d, HH:mm')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
-
-            <Separator className="my-4" />
-
-            {/* Grid utama: 1 kolom di mobile, 2:1 di md+ */}
-            <div className="grid gap-4 px-4 pb-4 sm:px-6 md:grid-cols-3">
-                {/* KIRI: Detail & Items (span 2 kolom di md+) */}
-                <Card className="order-2 space-y-4 p-4 md:order-1 md:col-span-2">
-                    <OrderMainInfo orderId={order.id} client={order.client} notes={order.notes} initialFinalAmount={order.final_amount} />
-
-                    {/* Items table (komponen sudah handle responsifnya) */}
-                    <OrderItemsTable orderId={order.id} rows={items} services={props.services ?? []} />
-                </Card>
-
-                {/* KANAN: Payment & Status (muncul di atas di mobile agar info ringkas terlihat duluan) */}
-                <div className="order-1 space-y-4 md:order-2">
-                    <PaymentSummary finalAmount={order.final_amount} paid={paid} due={due} formatRupiah={formatRupiah} />
-
-                    <StatusUpdateForm currentStatus={order.status} statuses={statuses} patchUrl={route('admin.orders.update-status', order.id)} />
-                </div>
-            </div>
-
-            {/* Timeline */}
-            <div className="px-4 pb-4 sm:px-6">
-                <OrderTimeline histories={histories} />
-            </div>
-        </AppLayout>
+        </AdminLayout>
     );
 }

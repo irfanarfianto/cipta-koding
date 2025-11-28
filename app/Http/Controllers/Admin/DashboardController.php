@@ -23,6 +23,11 @@ class DashboardController extends Controller
             'total_revenue'    => (float) Payment::sum('amount'),
             'total_clients'    => Client::count(),
             'active_services'  => Service::where('is_active', true)->count(),
+            'projects_in_progress' => Order::whereIn('status', ['Dalam Pengerjaan', 'Revisi'])->count(),
+            // Asumsi: Order punya due_date atau kita pakai created_at + estimasi. 
+            // Untuk sekarang kita pakai placeholder 0 atau logic sederhana jika ada kolom deadline.
+            // Kita akan update ini nanti jika ada kolom deadline di tabel orders.
+            'projects_late'    => 0, 
         ];
 
         // CHART: monthly revenue (12 bulan terakhir)
@@ -47,6 +52,27 @@ class DashboardController extends Controller
         $statusDist = Order::select('status', DB::raw('COUNT(*) as total'))
             ->groupBy('status')
             ->orderBy('status')
+            ->get();
+
+        // KPI & Analytics
+        $totalOrders = Order::count();
+        $completedOrders = Order::where('status', 'Selesai')->count();
+        $completionRate = $totalOrders > 0 ? ($completedOrders / $totalOrders) * 100 : 0;
+
+        $totalInvoices = Invoice::count();
+        $paidInvoices = Invoice::where('status', 'paid')->count();
+        $collectionRate = $totalInvoices > 0 ? ($paidInvoices / $totalInvoices) * 100 : 0;
+
+        $avgOrderValue = $totalOrders > 0 ? ((float) Payment::sum('amount') / $totalOrders) : 0;
+
+        // Popular Services (Top 5)
+        $popularServices = DB::table('order_items')
+            ->join('services', 'order_items.item_id', '=', 'services.id')
+            ->where('order_items.item_type', 'service') // Asumsi morph map 'service' atau class name
+            ->select('services.name', DB::raw('SUM(order_items.quantity) as total_sold'))
+            ->groupBy('services.id', 'services.name')
+            ->orderByDesc('total_sold')
+            ->limit(5)
             ->get();
 
         // LIST TERBARU
@@ -110,12 +136,18 @@ class DashboardController extends Controller
                 ],
             ]);
 
-        return Inertia::render('Dashboard', [
+        return Inertia::render('Admin/Dashboard', [
             'metrics'         => $metrics,
             'charts'          => [
                 'monthly_revenue' => $monthlyRevenue,
                 'order_status_distribution' => $statusDist,
             ],
+            'kpi' => [
+                'completion_rate' => round($completionRate, 1),
+                'collection_rate' => round($collectionRate, 1),
+                'avg_order_value' => $avgOrderValue,
+            ],
+            'popular_services' => $popularServices,
             'latest_orders'   => $latestOrders,
             'due_invoices'    => $dueInvoices,
             'recent_payments' => $recentPayments,

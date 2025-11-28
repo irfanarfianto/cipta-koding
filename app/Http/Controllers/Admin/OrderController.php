@@ -18,6 +18,7 @@ use App\Models\OrderItem;
 use App\Models\Service;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -116,6 +117,18 @@ class OrderController extends Controller
         ]);
     }
 
+    public function edit(Order $order)
+    {
+        $order->load(['client', 'items.item']);
+        
+        return Inertia::render('Admin/Orders/Edit', [
+            'order'    => $order,
+            'clients'  => Client::orderBy('name')->get(['id', 'name', 'email']),
+            'services' => Service::where('is_active', true)->orderBy('name')->get(['id', 'name', 'base_price']),
+            'statuses' => Order::STATUSES,
+        ]);
+    }
+
     public function store(OrderStoreRequest $request)
     {
         $data = $request->validated();
@@ -186,7 +199,8 @@ class OrderController extends Controller
             'client',
             'items.item',
             'invoices.payments',
-            'statusHistories.changer' // timeline
+            'statusHistories.changer', // timeline
+            'assignee'
         ]);
 
         // jumlah terbayar & sisa
@@ -197,9 +211,9 @@ class OrderController extends Controller
             'order'  => $order,
             'paid'   => (float)$paid,
             'due'    => (float)$due,
-            'statuses' => ['Menunggu Konfirmasi', 'Menunggu Pembayaran', 'Sedang Dikerjakan', 'Review', 'Selesai', 'Dibatalkan'],
-            'services' => \App\Models\Service::where('is_active', true)->orderBy('name')->get(['id', 'name', 'base_price']),
-
+            'statuses' => Order::STATUSES,
+            'services' => Service::where('is_active', true)->orderBy('name')->get(['id', 'name', 'base_price']),
+            'users'    => \App\Models\User::orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -220,13 +234,28 @@ class OrderController extends Controller
     public function updateStatus(OrderUpdateStatusRequest $request, Order $order)
     {
         $data = $request->validated();
+        
+        $oldStatus = $order->status;
         $order->update(['status' => $data['status']]);
 
-        if (!empty($data['note'])) {
-            $order->statusHistories()->latest()->first()?->update(['note' => $data['note']]);
-        }
+        // Create history record
+        $order->statusHistories()->create([
+            'from_status' => $oldStatus,
+            'to_status'   => $data['status'],
+            'changed_by'  => auth()->id(),
+            'note'        => $data['note'] ?? null,
+        ]);
 
         return back()->with('success', 'Status pesanan diperbarui.');
+    }
+
+    public function assign(Request $request, Order $order)
+    {
+        $request->validate(['assigned_to' => 'nullable|exists:users,id']);
+        
+        $order->update(['assigned_to' => $request->assigned_to]);
+        
+        return back()->with('success', 'Order berhasil ditugaskan.');
     }
 
     public function bulkUpdateStatus(OrderBulkStatusRequest $request)
@@ -235,10 +264,15 @@ class OrderController extends Controller
 
         $orders = Order::whereIn('id', $data['ids'])->get();
         foreach ($orders as $order) {
+            $oldStatus = $order->status;
             $order->update(['status' => $data['status']]);
-            if (!empty($data['note'])) {
-                $order->statusHistories()->latest()->first()?->update(['note' => $data['note']]);
-            }
+            
+            $order->statusHistories()->create([
+                'from_status' => $oldStatus,
+                'to_status'   => $data['status'],
+                'changed_by'  => auth()->id(),
+                'note'        => $data['note'] ?? null,
+            ]);
         }
 
         return back()->with('success', 'Status beberapa order berhasil diperbarui.');

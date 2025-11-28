@@ -18,15 +18,27 @@ class PortfolioProject extends Model
         'title',
         'slug',
         'description',
+        'tech_stack',
         'project_url',
+        'github_url',
         'cover_image_url',
+        'images',
         'completed_date',
+        'duration_days',
+        'team_size',
         'client_id',
         'client_name',
+        'is_featured',
+        'view_count',
+        'meta_title',
+        'meta_description',
     ];
 
     protected $casts = [
         'completed_date' => 'date',
+        'tech_stack' => 'array',
+        'images' => 'array',
+        'is_featured' => 'boolean',
     ];
 
     public function tags()
