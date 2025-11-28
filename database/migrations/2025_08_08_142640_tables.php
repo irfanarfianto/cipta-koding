@@ -231,7 +231,6 @@ return new class extends Migration
                 DB::statement("ALTER TABLE order_items ADD CONSTRAINT order_items_qty_pos CHECK (quantity >= 1)");
                 DB::statement("ALTER TABLE order_items ADD CONSTRAINT order_items_price_nonneg CHECK (price >= 0)");
             } catch (\Throwable $e) {
-                // Lewati jika MySQL versi lama
             }
         }
     }
