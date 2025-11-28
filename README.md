@@ -75,10 +75,18 @@ Visit: `http://localhost:8000`
 
 ## 📚 Documentation
 
+### Getting Started
+- [Quick Start Guide](docs/QUICK_START.md) - Setup & running the app
+- [Start Here](docs/START_HERE.md) - **Your first steps in development** ⭐
+- [Development Roadmap](docs/ROADMAP.md) - Complete development plan
+
+### Technical Documentation
 - [Features Documentation](docs/FEATURES.md) - Detailed feature specifications
-- [Database Schema](docs/DATABASE_SCHEMA.md) - Database structure and relationships
+- [Database Schema](docs/DATABASE_SCHEMA_V2.md) - Database structure v2.0
+- [Migration Guide](docs/MIGRATION_GUIDE.md) - How to apply database improvements
 - [API Documentation](docs/API_DOCUMENTATION.md) - REST API endpoints
 - [Development Guide](docs/DEVELOPMENT_GUIDE.md) - Development guidelines
+- [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues & solutions
 
 ---
 
