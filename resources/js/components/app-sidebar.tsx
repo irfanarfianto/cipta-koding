@@ -31,6 +31,7 @@ import {
     ChevronDown,
     CreditCard,
     BarChart3,
+    ArrowLeftRight,
 } from 'lucide-react';
 import AppLogo from './app-logo';
 import { Badge } from './ui/badge';
@@ -41,21 +42,21 @@ type PageProps = { order_pending_count?: number };
 const mainNavItems: NavItem[] = [
     { title: 'Dashboard', href: '/admin', icon: LayoutGrid },
 
-    // Transaksi Utama
+   
+    // Manajemen
+    { title: 'Clients', href: '/admin/clients', icon: Users },
+];
+
+// transaksi
+const transactionNavItems: NavItem[] = [
+    { title: 'Reports', href: '/admin/reports', icon: BarChart3 },
     { title: 'Orders', href: '/admin/orders', icon: ShoppingCart },
     { title: 'Invoices', href: '/admin/invoices', icon: Receipt },
     { title: 'Payments', href: '/admin/payments', icon: CreditCard },
-
-    // Manajemen
-    { title: 'Clients', href: '/admin/clients', icon: Users },
-    { title: 'Services', href: '/admin/services', icon: Wrench },
-    { title: 'Reports', href: '/admin/reports', icon: BarChart3 },
-    
-    // System
-    { title: 'Settings', href: '/profile', icon: Settings },
 ];
 
 const contentNavItems: NavItem[] = [
+    { title: 'Services', href: '/admin/services', icon: Wrench },
     { title: 'Portfolio', href: '/admin/portfolio', icon: Folder },
     { title: 'Posts', href: '/admin/posts', icon: FileText },
     { title: 'Tags', href: '/admin/tags', icon: Tag },
@@ -104,6 +105,32 @@ export function AppSidebar() {
                         <Collapsible defaultOpen className="group/collapsible">
                             <SidebarMenuItem>
                                 <CollapsibleTrigger asChild>
+                                    <SidebarMenuButton tooltip="Transaksi">
+                                        <ArrowLeftRight />
+                                        <span>Transaksi</span>
+                                        <ChevronDown className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                                    </SidebarMenuButton>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                    <SidebarMenuSub>
+                                        {transactionNavItems.map((item) => (
+                                            <SidebarMenuSubItem key={item.title}>
+                                                <SidebarMenuSubButton asChild isActive={page.url.startsWith(item.href)} >
+                                                    <Link href={item.href} prefetch className="flex w-full items-center gap-2">
+                                                        {item.icon && <item.icon />}
+                                                        <span>{item.title}</span>
+                                                        {item.suffix && <span>{item.suffix}</span>}
+                                                    </Link>
+                                                </SidebarMenuSubButton>
+                                            </SidebarMenuSubItem>
+                                        ))}
+                                    </SidebarMenuSub>
+                                </CollapsibleContent>
+                            </SidebarMenuItem>
+                        </Collapsible>
+                        <Collapsible defaultOpen className="group/collapsible">
+                            <SidebarMenuItem>
+                                <CollapsibleTrigger asChild>
                                     <SidebarMenuButton tooltip="Content Management">
                                         <Folder />
                                         <span>Content Management</span>
@@ -127,7 +154,7 @@ export function AppSidebar() {
                             </SidebarMenuItem>
                         </Collapsible>
                     </SidebarMenu>
-                    
+
                 </SidebarGroup>
             </SidebarContent>
 

@@ -1,4 +1,4 @@
-import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 
@@ -16,7 +16,6 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                 {item.icon && <item.icon />}
                                 <span className="flex-1">{item.title}</span>
                                 {item.suffix && <span>{item.suffix}</span>}
-                                {/* 👈 Suffix masuk sini */}
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
